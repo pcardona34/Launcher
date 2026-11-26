@@ -11,6 +11,8 @@ Read License in the root directory.
 
 An Application launcher with filter.
 
+![Launcher](./Screenshots/Launcher.png)
+
 ## Install
 
 You must have superuser privileges to type your password
