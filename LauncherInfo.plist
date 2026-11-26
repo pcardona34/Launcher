@@ -1,0 +1,15 @@
+{
+    ApplicationDescription = "Opens a filtered List of Local Applications";
+    ApplicationName = Launcher;
+    ApplicationRelease = "0.4";
+    Authors = (
+	"Patrick CARDONA"
+    );
+    Copyright = "Copyright (C) 2026";
+    CopyrightDescription = "Released under the MIT License";
+    FullVersionID = "0.4.0";
+    NSExecutable = Launcher;
+    NSPrincipalClass = NSApplication;
+    NSRole = Application;
+    NSIcon = "Launcher.tiff";
+}
