@@ -25,6 +25,8 @@ static NSComparisonResult CompareAppsByName(id a, id b, void *context)
 {
     NSString *nameA = [a objectForKey:@"name"];
     NSString *nameB = [b objectForKey:@"name"];
+	 
+	 //NSLog(@"Comparing %@ and %@", nameA, nameB);
 
     return [nameA caseInsensitiveCompare:nameB];
 }
@@ -33,7 +35,7 @@ static NSComparisonResult CompareAppsByName(id a, id b, void *context)
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
-    _apps = [[NSMutableArray alloc] init];
+	_apps = [[NSMutableArray alloc] init];
 
     [self loadApps];
 
@@ -66,24 +68,50 @@ static NSComparisonResult CompareAppsByName(id a, id b, void *context)
     [content addSubview:scroll];
 
     [_panel makeKeyAndOrderFront:nil];
+
+}
+
+- (NSString *) getApplicationsFolderPath
+{
+	/* We do not use NSProcessInfo because it fails to get GNUstep variables
+	when the app is executed from the Dock */
+	
+	NSString *gnustepconf = @"/etc/GNUstep/GNUstep.conf";
+   NSString *content = [NSString stringWithContentsOfFile: gnustepconf];
+   NSString *motif = @"GNUSTEP_LOCAL_APPS";
+	NSLog(@"Reading GNUstep conf...");
+	if (content == nil) {
+		NSLog(@"Reading GNUstep conf at %@ failed.", gnustepconf);
+		return @"";
+		}
+	
+	NSArray *lines = [content componentsSeparatedByString:@"\n"];
+   for (NSString *line in lines) {
+        if ([line rangeOfString: motif].location != NSNotFound) {
+        	printf("%s", [line UTF8String]);
+        	NSString *found = [[NSString stringWithFormat: @"%s", [line UTF8String]] substringFromIndex: 19];
+        	
+        	return found;
+        }
+    }
+    return @"";
 }
 
 /* Scan GNUstep's local applications directory. */
 - (void)loadApps
 {
-    NSString *appsPath = [[[NSProcessInfo processInfo] environment]
-                          objectForKey:@"GNUSTEP_LOCAL_APPS"];
-    if (appsPath == nil) {
-        NSLog(@"GNUSTEP_LOCAL_APPS is not set");
-        return;
-    }
-
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSArray *names = [fm contentsOfDirectoryAtPath:appsPath error:NULL];
-
+   	NSString *applicationsFolderPath;
+	NSArray *names;
+		
+	applicationsFolderPath = [self getApplicationsFolderPath];
+    
+    NSFileManager *fm = [NSFileManager defaultManager];    
+    
+    names = [fm contentsOfDirectoryAtPath:applicationsFolderPath error:NULL];
+    	    	
     for (NSString *name in names) {
         if ([[name pathExtension] isEqualToString:@"app"]) {
-            NSString *path = [appsPath stringByAppendingPathComponent:name];
+            NSString *path = [applicationsFolderPath stringByAppendingPathComponent:name];
             BOOL isDirectory = NO;
             if ([fm fileExistsAtPath:path isDirectory:&isDirectory] && isDirectory) {
                 [_apps addObject:[NSDictionary dictionaryWithObjectsAndKeys:
@@ -93,8 +121,10 @@ static NSComparisonResult CompareAppsByName(id a, id b, void *context)
         }
     }
 
-    // Sorting the Apps 
-	[_apps sortUsingFunction:CompareAppsByName context:NULL];
+    // Sorting the Apps
+	// NSLog(@"Before sort: %lu apps", (unsigned long)[_apps count]);
+   [_apps sortUsingFunction:CompareAppsByName context:NULL];
+   // NSLog(@"After sort: %lu apps", (unsigned long)[_apps count]);	
 }
 
 - (NSArray *)visibleApps
@@ -115,11 +145,14 @@ static NSComparisonResult CompareAppsByName(id a, id b, void *context)
 - (void)filterApps:(id)sender
 {
     [_tableView reloadData];
+	NSLog(@"tableView was reloaded.");
 }
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView
 {
-    return [[self visibleApps] count];
+    NSInteger count = [[self visibleApps] count];
+    // NSLog(@"numberOfRowsInTableView: %ld", (long)count);
+    return count;
 }
 
 - (id)tableView:(NSTableView *)tableView
@@ -157,6 +190,12 @@ static NSComparisonResult CompareAppsByName(id a, id b, void *context)
     }
 }
 
+- (NSApplicationTerminateReply)applicationShouldTerminate:
+    (NSApplication *)sender
+{
+    NSLog(@"Launcher termination requested");
+    return NSTerminateNow;
+}
 
 @end
 
